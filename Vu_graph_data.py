@@ -20,9 +20,10 @@ print(g.edges(form='all'))
 # print("undirected graph", bg.edges(form='all'))
 g = dgl.graph(([0, 0, 1, 5], [1, 2, 2, 0]))
 g.ndata['x'] = torch.ones(g.num_nodes(), 3)
+g.ndata['y'] = torch.zeros(g.num_nodes(), 3)
 print(g)
 g.edata['x'] = torch.ones(g.num_edges(), dtype=torch.int32)
-print(g)
+print("2 features", g)
 
 g.ndata['y'] = torch.randn(g.num_nodes(), 5)
 print(g.ndata['x'])                  # get node 1's feature

@@ -7,7 +7,28 @@ import pandas as pd
 import networkx as nx
 import numpy as np
 from sklearn import preprocessing
+from torch._C import dtype
 
+
+def read_sample(df, min_len = 60, input_length = 10, out_put_length=1, step = 1, with_label=False):
+    data = []
+    label = []
+    next_sample = []
+   
+    for columns_name in df.columns:
+        columns = df[columns_name][df[columns_name].notna()]
+        list_data = [float(re.sub('[.,]', "", str(item))) for item in columns.to_list()]
+        if(len(list_data) < min_len):
+            continue
+        else:
+            for i in range(0, len(list_data) - input_length - 1, step):
+                data.append(list_data[i:i+input_length])
+                next_sample.append(list_data[(i+input_length-out_put_length+1):(i+input_length+1)])
+                label.append(columns_name)
+    if(with_label == True):
+        return np.array(data), np.array(next_sample), label
+    else:
+        return np.array(data), np.array(next_sample)
 
 def read_all_data(df, min_len=60, step=1):
 
@@ -68,22 +89,32 @@ class PowerGNNdataset(DGLDataset):
         
         # process data to a list of graphs and a list of labels
         xls_data = pd.read_excel('sample_data.xlsx')
-        data, label = read_all_data(xls_data)
+        data, next_sample, label = read_sample(xls_data, with_label=True)
         self.graphs = []
-        for graph in data: 
+        self.labels = []
+        for graph, l in zip(data, next_sample): 
             n = len(graph)
             nx_g = nx.path_graph(n)
             g = dgl.from_networkx(nx_g)
             g.ndata['electric'] = torch.tensor(np.expand_dims(np.array(graph), axis=-1))
             self.graphs.append(g)
-        le = preprocessing.LabelEncoder()
-        le.fit(label)
-        self.label = le.transform(label)
+
+            if(l < 500): #small consumption
+                self.labels.append(0)
+            elif(l >= 500 and l <= 1000):
+                self.labels.append(1) #large consumption
+            else: #extra consumption
+                self.labels.append(2)
+        # le = preprocessing.LabelEncoder()
+        # le.fit(label)
+        # self.label = le.transform(label)
+        self.n_classes = len(self.labels)
+        self.in_feats = 1
         
 
     def __getitem__(self, idx):
         # assert idx == 0, "This dataset has only one graph"
-        return self.graphs[idx], self.label[idx]
+        return self.graphs[idx], self.labels[idx]
 
     def __len__(self):
         # number of data examples
