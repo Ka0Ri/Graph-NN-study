@@ -1,4 +1,5 @@
 import dgl
+from numpy.lib.function_base import average
 import torch
 from dgl.data import DGLDataset
 from dgl.dataloading import GraphDataLoader
@@ -17,13 +18,13 @@ def read_sample(df, min_len = 60, input_length = 10, out_put_length=1, step = 1,
    
     for columns_name in df.columns:
         columns = df[columns_name][df[columns_name].notna()]
-        list_data = [float(re.sub('[.,]', "", str(item))) for item in columns.to_list()]
+        list_data = [float(item) for item in columns.to_list()]
         if(len(list_data) < min_len):
             continue
         else:
-            for i in range(0, len(list_data) - input_length - 1, step):
-                data.append(list_data[i:i+input_length])
-                next_sample.append(list_data[(i+input_length-out_put_length+1):(i+input_length+1)])
+            for i in range(0, len(list_data) - input_length - 2, step):
+                data.append(list_data[i:(i+input_length)])
+                next_sample.append(list_data[(i+input_length-out_put_length + 1):(i+input_length +1)])
                 label.append(columns_name)
     if(with_label == True):
         return np.array(data), np.array(next_sample), label
@@ -93,22 +94,25 @@ class PowerGNNdataset(DGLDataset):
         self.graphs = []
         self.labels = []
         for graph, l in zip(data, next_sample): 
+            
             n = len(graph)
             nx_g = nx.path_graph(n)
             g = dgl.from_networkx(nx_g)
             g.ndata['electric'] = torch.tensor(np.expand_dims(np.array(graph), axis=-1))
             self.graphs.append(g)
-
-            if(l < 500): #small consumption
-                self.labels.append(0)
-            elif(l >= 500 and l <= 1000):
-                self.labels.append(1) #large consumption
-            else: #extra consumption
-                self.labels.append(2)
+    
+            self.labels.append(l)
+            # if(l < 500): #small consumption
+            #     self.labels.append(0)
+            # elif(l >= 500 and l <= 1000):
+            #     self.labels.append(1) #large consumption
+            # else: #extra consumption
+            #     self.labels.append(2)
         # le = preprocessing.LabelEncoder()
         # le.fit(label)
         # self.label = le.transform(label)
         self.n_classes = len(self.labels)
+        self.in_nodes = len(graph)
         self.in_feats = 1
         
 
