@@ -22,8 +22,8 @@ class Regressor(nn.Module):
 
         self.conv1 = dglnn.GraphConv(in_dim, hidden_dim)
         self.conv2 = dglnn.GraphConv(hidden_dim, hidden_dim)
-        self.conv3 = dglnn.GraphConv(hidden_dim, hidden_dim)
-        self.conv4 = dglnn.GraphConv(hidden_dim, hidden_dim)
+        # self.conv3 = dglnn.GraphConv(hidden_dim, hidden_dim)
+        # self.conv4 = dglnn.GraphConv(hidden_dim, hidden_dim)
         self.regession = nn.Linear(hidden_dim, 1)
 
     def forward(self, g, h):
@@ -31,8 +31,8 @@ class Regressor(nn.Module):
       
         h = F.relu(self.conv1(g, h))
         h = F.relu(self.conv2(g, h))
-        h = F.relu(self.conv3(g, h))
-        h = F.relu(self.conv4(g, h))
+        # h = F.relu(self.conv3(g, h))
+        # h = F.relu(self.conv4(g, h))
        
         with g.local_scope():
             g.ndata['h'] = h
